@@ -129,7 +129,7 @@ function call_GPT3(following_phrase) {
 				setTimeout(function() {
 					add_other_bubble(following_phrase);
 
-				}, 2500);
+				}, 1500);
 
 			}
 
@@ -146,11 +146,9 @@ function call_GPT3(following_phrase) {
 function user_type() {
 	user_input_text = document.getElementById("UserInput_Textarea").value;
 	if (user_input_text != "") {
-		add_user_bubble(user_input_text);
-		// console.log("User Input Text: " + user_input_text);
+		onUserInput(user_input_text); // Pass user input to onUserInput
+		document.getElementById("UserInput_Textarea").value = ""; // Clear input field
 	}
-	// console.log("click");
-	updateUserText(user_input_text);
 	if (total_dialogue > 3 && qualtrics_code !== '') {
 		send_dinsaur();
 	}
