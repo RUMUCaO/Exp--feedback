@@ -285,7 +285,7 @@ function generateAutoReply(input) {
 	const questionNumber = total_dialogue;
 
 	// Get responses for the current question
-	const responses = questionResponses[questionNumber];
+	const responses = questionResponses[questionNumber-1];
 
 	if (responses) {
 		if (input.toLowerCase() === 'yes') {
