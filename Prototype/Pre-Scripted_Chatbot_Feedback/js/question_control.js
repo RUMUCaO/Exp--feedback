@@ -629,7 +629,7 @@ function conversation_control() {
 		updateQuestion("Were there any female customers present at the cash counter when the robbers entered?");
 
 		//Good bye!
-		add_other_bubble("The CODE to proceed to next section is 9560. NOTE: This is NOT the Prolific completion code, you will be redirected to the completion page automatically after you've finished all the sections. That is all, thank you for your cooperation!");
+		add_other_bubble("The CODE to proceed to next section is 9560. That is all, thank you for your cooperation!");
 		// console.log(total_dialogue, convo_num)
 		total_dialogue = total_dialogue + 1;
 
