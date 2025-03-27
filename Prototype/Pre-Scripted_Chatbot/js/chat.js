@@ -44,7 +44,9 @@ function add_user_bubble(input_message) {
 	//scrow to view
 	document.getElementById(current_convo).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
 	conversation_history.push({ role: "user", content: input_message });
-	conversation_control();
+	setTimeout(() => {
+	conversation_control(); // Proceed to the next step after the delay
+	 }, 1500);
 
 }
 
@@ -146,6 +148,7 @@ function call_GPT3(following_phrase) {
 function user_type() {
 	user_input_text = document.getElementById("UserInput_Textarea").value;
 	if (user_input_text != "") {
+		add_user_bubble(user_input_text);
 		onUserInput(user_input_text); // Pass user input to onUserInput
 		document.getElementById("UserInput_Textarea").value = ""; // Clear input field
 	}

@@ -322,7 +322,7 @@ function conversation_control() {
 		//First Question (8 in doc)
 		setTimeout(function() {
 			add_other_bubble("Was it dark outside prior to the robbers entering the store?");
-		}, 500);
+		}, 2500);
 
 	}
 	////////////////////////// SECOND BLOCK ////////////////////////
@@ -658,9 +658,7 @@ function conversation_control() {
 function onUserInput(input) {
 	handleUserInput(input);
 		// Delay the next step by 2 seconds (2000 milliseconds)
-	setTimeout(() => {
-		conversation_control(); // Proceed to the next step after the delay
-	}, 1500);
+
 }
 
 conversation_control();
