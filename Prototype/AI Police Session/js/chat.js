@@ -79,7 +79,7 @@ function add_other_bubble(input_message) {
 		bubble_select.querySelector("#loading_dots").style.display = "none";
 		document.getElementById(current_convo).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
 
-	}, 1000);
+	}, 1500);
 
 	conversation_history.push({ role: "system", content: input_message });
 	// console.log(conversation_history);
