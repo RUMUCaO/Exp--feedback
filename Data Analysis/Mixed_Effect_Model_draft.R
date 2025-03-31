@@ -1,0 +1,197 @@
+library(readr)
+main_data <- read_csv("ai-false-memories-e9769ca7c25213fc26c99b1495392da4a89c23bd/Data/Raw/main_data.csv")
+View(main_data)
+
+#####========== Clear Data ==========#####
+main_data <- main_data %>%
+  mutate(StartDate = as.POSIXct(StartDate, format = "%Y-%m-%d %H:%M:%S"))
+
+library(dplyr)
+filtered_main_data <- main_data %>% filter(Status !='Survey Preview', StartDate > as.POSIXct("2024-04-15")) %>% 
+  filter(attention_check_1 == 'Probably not', attention_check_2 == 'Yes', attention_check_3 == 'Definitely not') 
+
+
+#####========== Balanced Data ==========#####
+# 找出 Exp_condition == "none" 的最後一筆的 row index
+latest_index_1 <- which(filtered_main_data$Exp_condition == "none") %>% tail(1)
+
+# 找出 Exp_condition == "chatbot" 的最後一筆的 row index
+latest_index_2 <- which(filtered_main_data$Exp_condition == "chatbot") %>% tail(1)
+
+# 移除這兩筆資料
+filtered_main_data <- filtered_main_data[-c(latest_index_1, latest_index_2), ]
+
+
+#####========== Select & Rename Data ==========#####
+final_data <- filtered_main_data %>% select(ResponseId, SAM_scale_1, SAM_scale_2, SAM_scale_3, DemModQues_age, DemModQues_education,
+                                            DemModQues_gender, DemModQues_AI, DemModQues_Chatbot, DemModQues_personal,
+                                            DemModQues_interest, `attitude/trust in ai_1`, `attitude/trust in ai_2`,
+                                            `attitude/trust in ai_3`, `attitude/trust in ai_4`,`attitude/trust in ai_5`,
+                                            `attitude/trust in ai_6`, `attitude/trust in ai_7`, `attitude/trust in ai_8`,
+                                            `attitude/trust in ai_9`, `attitude/trust in ai_10`,`attitude/trust in ai_11`,
+                                            `NASA TLX_Mental_1`, `NASA TLX_Physical_1`, `NASA TLX_Temporal_1`, 
+                                            `NASA TLX_Performance_1`, `NASA TLX_Effort_1`, `NASA TLX_Frustration_1`, 
+                                            Exp_condition, PostQues_3, PostQues_10, PostQues_14, PostQues_20, PostQues_25)
+
+final_data <- final_data %>% rename(`Valence (SAM Scale)` = SAM_scale_1, `Arousal (SAM Scale)` = SAM_scale_2,
+                                    `Dominance (SAM Scale)` = SAM_scale_3, Age = DemModQues_age, 
+                                    `Education Level` = DemModQues_education, Gender = DemModQues_gender,
+                                    `Experience with AI` = DemModQues_AI, `Experience with Chatbot` = DemModQues_Chatbot,
+                                    `Personal Experience related to crime scene` = DemModQues_personal,
+                                    `Interest in crime scenes and investigations` = DemModQues_interest,
+                                    `Tendency to recommend the AI` = `attitude/trust in ai_9`,
+                                    `Perceived AI trustworthy` = `attitude/trust in ai_10`,
+                                    `Perceived AI empathy` = `attitude/trust in ai_11`)
+
+
+#####========== Mutate & Count Data ==========#####
+replacement_map <- c(
+  "Definitely yes" = 7,
+  "Yes" = 6,
+  "Probably yes" = 5,
+  "Uncertain if yes or no" = 4,
+  "Probably not" = 3,
+  "No" = 2,
+  "Definitely not" = 1
+)
+
+replacement_map_AI_Questions <- c(
+  "1 (strongly disagree)" = 1,
+  "2" = 2, "3" = 3, "4" = 4, "5" = 5, "6" = 6,
+  "7 (strongly agree)" = 7
+)
+
+replacement_map_Crime_Related_Question <- c(
+  "1-Not interested at all" = 1,
+  "2" = 2, "3" = 3, "4" = 4, "5" = 5, "6" = 6,
+  "7-Very interested" = 7
+)
+
+replacement_map_Experience_Question <- c(
+  "1-Not familiar at all" = 1,
+  "2" = 2, "3" = 3, "4" = 4, "5" = 5, "6" = 6,
+  "7-Very Familiar" = 7
+)
+
+# Mutate: Critical Question 
+final_data <- final_data %>%
+  mutate(across(
+    c(PostQues_3, PostQues_10, PostQues_14, PostQues_20, PostQues_25), ~ replacement_map[.]))
+
+# Mutate: AI Questions
+final_data <- final_data %>%
+  mutate(across(
+    c(`attitude/trust in ai_1`, `attitude/trust in ai_2`,`attitude/trust in ai_3`, `attitude/trust in ai_4`,
+      `attitude/trust in ai_5`, `attitude/trust in ai_6`, `attitude/trust in ai_7`, `attitude/trust in ai_8`,
+      `Tendency to recommend the AI`, `Perceived AI trustworthy`, `Perceived AI empathy`), ~ replacement_map_AI_Questions[.]))
+
+# Mutate: Crime Related Question
+final_data <- final_data %>%
+  mutate(across(
+    c(`Interest in crime scenes and investigations`), ~ replacement_map_Crime_Related_Question[.]))
+
+# Mutate: Experience w/ AI, Chatbot
+final_data <- final_data %>%
+  mutate(across(
+    c(`Experience with AI`, `Experience with Chatbot`), ~ replacement_map_Experience_Question[.]))
+
+# Mutate: charater to numeric
+final_data <- final_data %>%
+  mutate(across(
+    c(Age, `NASA TLX_Mental_1`, `NASA TLX_Physical_1`, `NASA TLX_Temporal_1`, `NASA TLX_Performance_1`, 
+      `NASA TLX_Effort_1`, `NASA TLX_Frustration_1`),
+    ~ as.numeric(.)
+  ))
+
+# Count: False Memories
+final_data <- final_data %>%
+  mutate(false_memories = rowSums(select(., PostQues_3, PostQues_10, PostQues_14, PostQues_20, PostQues_25) > 4))
+
+# Count: AI Attitude Scale
+final_data <- final_data %>%
+  mutate(`AI Attitude` = rowSums(select(., 
+                                        `attitude/trust in ai_1`, `attitude/trust in ai_2`, `attitude/trust in ai_3`,
+                                        `attitude/trust in ai_4`, `attitude/trust in ai_5`, `attitude/trust in ai_6`, 
+                                        `attitude/trust in ai_7`, `attitude/trust in ai_8`
+  ), na.rm = TRUE)) 
+
+# Count: Task Workload (Raw NASA-TLX)
+final_data <- final_data %>%
+  mutate(`Task Workload (Raw NASA-TLX)` = rowSums(select(., 
+                                          `NASA TLX_Mental_1`, `NASA TLX_Physical_1`, `NASA TLX_Temporal_1`, 
+                                          `NASA TLX_Performance_1`, `NASA TLX_Effort_1`, `NASA TLX_Frustration_1`
+  ), na.rm = TRUE)) 
+
+# New_Var. Feedback
+final_data <- final_data %>% mutate(Feedback = ifelse(Exp_condition == "chatbot", 1, 0))
+
+#####========== Different Conditions ==========#####
+control_data <- final_data %>% filter(`Exp_condition`== 'none')
+survey_data <- final_data %>% filter(`Exp_condition`== 'survey-based')
+prescripted_data <- final_data %>% filter(`Exp_condition`== 'static-chatbot')
+generative_data <- final_data %>% filter(`Exp_condition`== 'chatbot')
+
+
+#####========== Mixed Effect Model ==========#####
+library(Matrix)
+library(lme4)
+
+# model_pois <- glmer(
+#   false_memories ~ Age + `Education Level` + Gender + `Experience with AI` + `Experience with Chatbot` 
+#                   + `Personal Experience related to crime scene` + `Interest in crime scenes and investigations`
+#                   + `Tendency to recommend the AI` + `Perceived AI trustworthy` + `Perceived AI empathy`
+#                   + `AI Attitude` + `Task Workload (Raw NASA-TLX)` + (1 | ResponseId),
+#   data = final_data,
+#   family = poisson(link = "log")
+# )
+
+model_pois <- glmer(
+  false_memories ~  Age + `Experience with AI` + `Experience with Chatbot` 
+  + `Personal Experience related to crime scene` + `Interest in crime scenes and investigations`
+  + `Tendency to recommend the AI` + `Perceived AI trustworthy` + `Perceived AI empathy`
+  + `AI Attitude` + `Task Workload (Raw NASA-TLX)` + Feedback
+    (1 | ResponseId)  ,
+  data = final_data,
+  family = poisson(link = "log")
+)
+
+summary(model_pois)
+# install.packages("performance")
+# library(performance)
+# 
+# check_overdispersion(model_pois)
+
+
+
+
+# remove control comparison
+data_wo_control <- final_data %>% filter(`Exp_condition` != "none")
+model_pois <- glmer(
+  false_memories ~  0 + `Exp_condition` + Age + `Experience with AI` + `Experience with Chatbot` 
+  + `Personal Experience related to crime scene` + `Interest in crime scenes and investigations`
+  + `Tendency to recommend the AI` + `Perceived AI trustworthy` + `Perceived AI empathy`
+  + `AI Attitude` + `Task Workload (Raw NASA-TLX)` + (1 | ResponseId)  ,
+  data = data_wo_control,
+  family = poisson(link = "log")
+)
+
+summary(model_pois)
+
+
+
+
+
+
+
+# Negative Binomial Model
+model_nb <- glmer.nb(
+  false_memories ~ Age + `Experience with AI` + `Experience with Chatbot` 
+  + `Personal Experience related to crime scene` + `Interest in crime scenes and investigations`
+  + `Tendency to recommend the AI` + `Perceived AI trustworthy` + `Perceived AI empathy`
+  + `AI Attitude` + `Task Workload (Raw NASA-TLX)` + (1 | ResponseId),
+  data = final_data,
+  family = nbinom2(link = "log")
+)
+summary(model_nb)
+
+
